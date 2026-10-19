@@ -225,12 +225,15 @@
           </div>
         </section>
 
-        <!-- Transaction History Table / Feed -->
-        <section class="glass-panel section-card">
+        <!-- Transaction History & Timeline Section -->
+        <section class="glass-panel section-card tx-history-card">
           <div class="section-header flex-wrap">
             <div>
-              <h2 class="section-title">Transactions Ledger</h2>
-              <p class="section-subtitle">Manage daily cash flow and expenses</p>
+              <div class="tx-title-badge-wrap">
+                <h2 class="section-title">Transaction History</h2>
+                <span class="badge" id="historyScopeBadge">This Month</span>
+              </div>
+              <p class="section-subtitle">Complete chronological timeline of student cash flow and expenses</p>
             </div>
             
             <div class="filter-controls">
@@ -241,6 +244,12 @@
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <input type="text" id="txSearchInput" placeholder="Search (e.g. Canteen, Books)...">
+              </div>
+
+              <!-- History Scope Filter (This Month vs All Time) -->
+              <div class="pill-group" id="txScopeFilter">
+                <button class="pill-btn active" data-scope="month">This Month</button>
+                <button class="pill-btn" data-scope="all">All History</button>
               </div>
 
               <!-- Type Filter -->
@@ -262,10 +271,35 @@
             </div>
           </div>
 
-          <!-- Transaction List -->
+          <!-- Secondary Toolbar: Category Filter & Sorting -->
+          <div class="tx-toolbar-secondary">
+            <div class="toolbar-left">
+              <label for="txCategoryFilter" class="sr-only">Filter by Category</label>
+              <select id="txCategoryFilter" class="styled-select tx-select-sm" title="Filter by category">
+                <option value="all">📁 All Categories</option>
+                <!-- Populated dynamically -->
+              </select>
+
+              <label for="txSortSelect" class="sr-only">Sort Transactions</label>
+              <select id="txSortSelect" class="styled-select tx-select-sm" title="Sort order">
+                <option value="date-desc">⏱️ Date (Newest first)</option>
+                <option value="date-asc">⏳ Date (Oldest first)</option>
+                <option value="amt-desc">💎 Amount (High to Low)</option>
+                <option value="amt-asc">🏷️ Amount (Low to High)</option>
+              </select>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="tx-stats-bar" id="txStatsBar">
+              <span id="txCountStats" class="stat-pill">8 items</span>
+              <span id="txTotalStats" class="stat-pill stat-accent">Total Flow: $0.00</span>
+            </div>
+          </div>
+
+          <!-- Transaction List / Timeline -->
           <div class="transactions-scroll-area">
             <div class="tx-list" id="transactionsList">
-              <!-- Rendered via JS -->
+              <!-- Rendered via JS with Date Groups -->
             </div>
           </div>
         </section>

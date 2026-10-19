@@ -86,6 +86,9 @@
     budgets: JSON.parse(localStorage.getItem('cf_budgets')) || DEFAULT_BUDGETS,
     goals: JSON.parse(localStorage.getItem('cf_goals')) || DEFAULT_GOALS,
     activeTypeFilter: 'all',
+    historyScope: 'month', // 'month' | 'all'
+    categoryFilter: 'all',
+    sortOrder: 'date-desc',
     searchQuery: '',
     modalType: 'expense'
   };
@@ -227,10 +230,13 @@
     // 4. Daily Tips
     renderDailyTip();
 
-    // 5. Render Everything
+    // 5. Populate Category Filter Dropdown
+    populateCategoryFilterOptions();
+
+    // 6. Render Everything
     renderAll();
 
-    // 6. Setup Listeners
+    // 7. Setup Listeners
     setupEventListeners();
   }
 
@@ -555,18 +561,61 @@
     });
   }
 
-  // --- Render Transaction Feed ---
+  // --- Populate Category Filter Dropdown ---
+  function populateCategoryFilterOptions() {
+    const catSelect = document.getElementById('txCategoryFilter');
+    if (!catSelect) return;
+    const currentVal = state.categoryFilter;
+    catSelect.innerHTML = '<option value="all">📁 All Categories</option>';
+
+    const expGroup = document.createElement('optgroup');
+    expGroup.label = '── Expenses ──';
+    EXPENSE_CATEGORIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = `${c.icon} ${c.name}`;
+      expGroup.appendChild(opt);
+    });
+    catSelect.appendChild(expGroup);
+
+    const incGroup = document.createElement('optgroup');
+    incGroup.label = '── Incomes ──';
+    INCOME_CATEGORIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = `${c.icon} ${c.name}`;
+      incGroup.appendChild(opt);
+    });
+    catSelect.appendChild(incGroup);
+
+    catSelect.value = currentVal;
+  }
+
+  // --- Render Transaction History & Timeline ---
   function renderTransactions() {
     transactionsList.innerHTML = '';
 
-    let list = getMonthTransactions();
+    // 1. Scope: This Month vs All History
+    let list = state.historyScope === 'all'
+      ? [...state.transactions]
+      : getMonthTransactions();
 
-    // 1. Type Filter
+    const scopeBadge = document.getElementById('historyScopeBadge');
+    if (scopeBadge) {
+      scopeBadge.textContent = state.historyScope === 'all' ? 'All History' : 'This Month';
+    }
+
+    // 2. Type Filter (All, Expense, Income)
     if (state.activeTypeFilter !== 'all') {
       list = list.filter(t => t.type === state.activeTypeFilter);
     }
 
-    // 2. Search Query
+    // 3. Category Filter
+    if (state.categoryFilter !== 'all') {
+      list = list.filter(t => t.category === state.categoryFilter);
+    }
+
+    // 4. Search Query
     if (state.searchQuery.trim()) {
       const q = state.searchQuery.toLowerCase();
       list = list.filter(t => 
@@ -576,60 +625,135 @@
       );
     }
 
-    // 3. Sort by date descending
-    list.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 5. Update Stats Bar
+    const countStats = document.getElementById('txCountStats');
+    const totalStats = document.getElementById('txTotalStats');
+    const netFlow = list.reduce((acc, t) => {
+      const amt = parseFloat(t.amount) || 0;
+      return acc + (t.type === 'income' ? amt : -amt);
+    }, 0);
+
+    if (countStats) {
+      countStats.textContent = `${list.length} ${list.length === 1 ? 'record' : 'records'}`;
+    }
+    if (totalStats) {
+      const sign = netFlow >= 0 ? '+' : '-';
+      totalStats.textContent = `Net Flow: ${sign}${formatMoney(Math.abs(netFlow))}`;
+      totalStats.style.color = netFlow >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)';
+    }
+
+    // 6. Sort Order
+    list.sort((a, b) => {
+      if (state.sortOrder === 'date-asc') {
+        return new Date(a.date) - new Date(b.date);
+      } else if (state.sortOrder === 'amt-desc') {
+        return (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0);
+      } else if (state.sortOrder === 'amt-asc') {
+        return (parseFloat(a.amount) || 0) - (parseFloat(b.amount) || 0);
+      } else {
+        // 'date-desc' default
+        return new Date(b.date) - new Date(a.date);
+      }
+    });
 
     if (list.length === 0) {
       transactionsList.innerHTML = `
         <div class="empty-state-mini">
-          No transactions found for this filter. Try adding a new transaction or clearing search!
+          No transactions match this timeline filter. Try switching between "This Month" / "All History", clearing filters, or adding a new transaction!
         </div>
       `;
       return;
     }
 
+    // 7. Group items by Date for a sleek visual timeline
+    const grouped = {};
     list.forEach(tx => {
-      const isIncome = tx.type === 'income';
-      const catConfig = isIncome
-        ? INCOME_CATEGORIES.find(c => c.name === tx.category) || { icon: '💰' }
-        : EXPENSE_CATEGORIES.find(c => c.name === tx.category) || { icon: '🍔' };
+      const dateKey = tx.date || 'Undated';
+      if (!grouped[dateKey]) grouped[dateKey] = [];
+      grouped[dateKey].push(tx);
+    });
 
-      const item = document.createElement('div');
-      item.className = 'tx-item';
-      item.innerHTML = `
-        <div class="tx-left">
-          <div class="tx-category-icon">${catConfig.icon}</div>
-          <div class="tx-info">
-            <span class="tx-title">${escapeHtml(tx.title)}</span>
-            <div class="tx-meta">
-              <span>${tx.category}</span>
-              <span>•</span>
-              <span>${formatDateString(tx.date)}</span>
-              ${tx.tag ? `<span class="tx-tag">${escapeHtml(tx.tag)}</span>` : ''}
+    const todayStr = getFormattedCurrentDate(0);
+    const yesterdayStr = getFormattedCurrentDate(-1);
+
+    Object.keys(grouped).forEach(dateKey => {
+      const items = grouped[dateKey];
+      
+      // Calculate date subtotal
+      let dayExpense = 0;
+      let dayIncome = 0;
+      items.forEach(i => {
+        const a = parseFloat(i.amount) || 0;
+        if (i.type === 'expense') dayExpense += a;
+        else dayIncome += a;
+      });
+
+      let displayDate = formatDateString(dateKey);
+      if (dateKey === todayStr) displayDate = 'Today';
+      else if (dateKey === yesterdayStr) displayDate = 'Yesterday';
+
+      let subtotalText = '';
+      if (dayExpense > 0 && dayIncome > 0) {
+        subtotalText = `Spent: ${formatMoney(dayExpense)} | Inflow: +${formatMoney(dayIncome)}`;
+      } else if (dayExpense > 0) {
+        subtotalText = `Spent: ${formatMoney(dayExpense)}`;
+      } else if (dayIncome > 0) {
+        subtotalText = `Inflow: +${formatMoney(dayIncome)}`;
+      }
+
+      // Group Header Element
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'tx-date-group-header';
+      groupHeader.innerHTML = `
+        <span>📅 ${displayDate} (${items.length})</span>
+        <span class="tx-date-subtotal">${subtotalText}</span>
+      `;
+      transactionsList.appendChild(groupHeader);
+
+      // Render individual transactions for this date
+      items.forEach(tx => {
+        const isIncome = tx.type === 'income';
+        const catConfig = isIncome
+          ? INCOME_CATEGORIES.find(c => c.name === tx.category) || { icon: '💰' }
+          : EXPENSE_CATEGORIES.find(c => c.name === tx.category) || { icon: '🍔' };
+
+        const item = document.createElement('div');
+        item.className = 'tx-item';
+        item.innerHTML = `
+          <div class="tx-left">
+            <div class="tx-category-icon">${catConfig.icon}</div>
+            <div class="tx-info">
+              <span class="tx-title">${escapeHtml(tx.title)}</span>
+              <div class="tx-meta">
+                <span>${tx.category}</span>
+                <span>•</span>
+                <span>${formatDateString(tx.date)}</span>
+                ${tx.tag ? `<span class="tx-tag">${escapeHtml(tx.tag)}</span>` : ''}
+              </div>
             </div>
           </div>
-        </div>
-        <div class="tx-right">
-          <span class="tx-amount ${isIncome ? 'tx-income' : 'tx-expense'}">
-            ${isIncome ? '+' : '-'}${formatMoney(tx.amount)}
-          </span>
-          <div class="tx-actions">
-            <button class="btn-icon-subtle edit-tx-btn" data-id="${tx.id}" title="Edit Transaction">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="btn-icon-danger del-tx-btn" data-id="${tx.id}" title="Delete Transaction">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
+          <div class="tx-right">
+            <span class="tx-amount ${isIncome ? 'tx-income' : 'tx-expense'}">
+              ${isIncome ? '+' : '-'}${formatMoney(tx.amount)}
+            </span>
+            <div class="tx-actions">
+              <button class="btn-icon-subtle edit-tx-btn" data-id="${tx.id}" title="Edit Transaction">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="btn-icon-danger del-tx-btn" data-id="${tx.id}" title="Delete Transaction">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      `;
-      transactionsList.appendChild(item);
+        `;
+        transactionsList.appendChild(item);
+      });
     });
 
     // Attach row action listeners
@@ -1154,7 +1278,7 @@
     cancelDepositBtn.addEventListener('click', closeDepositModal);
     depositForm.addEventListener('submit', confirmDeposit);
 
-    // Filter Pills
+    // Type Filter Pills
     document.querySelectorAll('#txTypeFilter .pill-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('#txTypeFilter .pill-btn').forEach(b => b.classList.remove('active'));
@@ -1163,6 +1287,34 @@
         renderTransactions();
       });
     });
+
+    // History Scope Pills (This Month vs All History)
+    document.querySelectorAll('#txScopeFilter .pill-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('#txScopeFilter .pill-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.historyScope = e.target.dataset.scope;
+        renderTransactions();
+      });
+    });
+
+    // Category Dropdown Filter
+    const catFilterSelect = document.getElementById('txCategoryFilter');
+    if (catFilterSelect) {
+      catFilterSelect.addEventListener('change', (e) => {
+        state.categoryFilter = e.target.value;
+        renderTransactions();
+      });
+    }
+
+    // Sort Dropdown
+    const sortSelect = document.getElementById('txSortSelect');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (e) => {
+        state.sortOrder = e.target.value;
+        renderTransactions();
+      });
+    }
 
     // Search input
     txSearchInput.addEventListener('input', (e) => {
