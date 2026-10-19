@@ -1720,3 +1720,179 @@ body.light-theme .receipt-paper {
   }
 }
 
+/* ==========================================================================
+   Student Financial Health GPA Badge & Footer
+   ========================================================================== */
+.health-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.8rem;
+  cursor: help;
+  transition: var(--transition);
+}
+
+.health-badge-wrap:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.health-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.health-score {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--accent-emerald);
+}
+
+/* GPA Color Variants */
+.health-grade-a { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); }
+.health-grade-a .health-score { color: #34d399; }
+
+.health-grade-b { background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3); }
+.health-grade-b .health-score { color: #38bdf8; }
+
+.health-grade-c { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); }
+.health-grade-c .health-score { color: #fbbf24; }
+
+.health-grade-d { background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.3); }
+.health-grade-d .health-score { color: #f43f5e; }
+
+/* --- App Footer --- */
+.app-footer {
+  margin-top: 2.5rem;
+  padding: 1.6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.logo-area-sm {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.footer-logo-emoji {
+  font-size: 1.25rem;
+}
+
+.footer-logo-title {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.footer-logo-title span {
+  background: linear-gradient(135deg, #818cf8 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.footer-motto {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.footer-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.shortcuts-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.shortcut-pills {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.key-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hover);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: var(--text-secondary);
+}
+
+.key-char {
+  background: var(--primary);
+  color: #ffffff;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 0.65rem;
+  margin-right: 0.35rem;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-secondary);
+}
+
+.privacy-note svg {
+  color: var(--accent-emerald);
+}
+
+/* Confetti Particle Canvas */
+.confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+

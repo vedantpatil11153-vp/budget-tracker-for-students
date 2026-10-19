@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+  <!-- Dynamic Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme">
@@ -37,6 +40,12 @@
       </div>
 
       <div class="header-actions">
+        <!-- Financial Health GPA Badge -->
+        <div class="health-badge-wrap" id="financialHealthBadgeWrap" title="Your overall student budget GPA score">
+          <span class="health-label">Budget GPA:</span>
+          <span class="health-score" id="financialHealthScore">A+ (92)</span>
+        </div>
+
         <!-- Currency Selector -->
         <div class="control-group">
           <label for="currencySelect" class="sr-only">Select Currency</label>
@@ -415,6 +424,53 @@
 
       </div>
     </div>
+
+    <!-- App Footer with Keyboard Hints & Privacy Guarantee -->
+    <footer class="app-footer glass-panel">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo-area-sm">
+            <span class="footer-logo-emoji">🎓</span>
+            <span class="footer-logo-title">Campus<span>Funds</span></span>
+          </div>
+          <p class="footer-motto">Empowering student financial freedom, one semester at a time.</p>
+        </div>
+        
+        <div class="footer-shortcuts">
+          <span class="shortcuts-title">⚡ Keyboard Shortcuts:</span>
+          <div class="shortcut-pills">
+            <kbd class="key-pill" title="Press N to add new transaction"><span class="key-char">N</span> New Tx</kbd>
+            <kbd class="key-pill" title="Press T to toggle theme"><span class="key-char">T</span> Theme</kbd>
+            <kbd class="key-pill" title="Press D to load demo data"><span class="key-char">D</span> Demo</kbd>
+            <kbd class="key-pill" title="Press Esc to close modal"><span class="key-char">Esc</span> Close</kbd>
+          </div>
+        </div>
+
+        <div class="footer-actions-wrap">
+          <button id="resetAllDataBtn" class="btn btn-secondary btn-sm" title="Clear all local data and restart for a new semester">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Reset Data
+          </button>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="privacy-note">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          100% Client-Side Privacy: All financial records are stored securely in your browser's LocalStorage.
+        </div>
+        <p class="copyright-text">Made with ❤️ for Students everywhere • CampusFunds v2.0 Final</p>
+      </div>
+    </footer>
+
+    <!-- Confetti Particle Canvas for Goal Celebrations -->
+    <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
   </div> <!-- End App Container -->
 

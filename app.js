@@ -392,6 +392,42 @@
         safeSpendNotice.style.color = 'var(--text-muted)';
       }
     }
+
+    // Compute Student Budget GPA (Financial Health Score)
+    const healthBadgeWrap = document.getElementById('financialHealthBadgeWrap');
+    const healthScoreEl = document.getElementById('financialHealthScore');
+    
+    if (healthScoreEl && healthBadgeWrap) {
+      let score = 50;
+      if (metrics.totalIncome > 0) {
+        const savingsRate = (metrics.netBalance / metrics.totalIncome) * 100;
+        if (savingsRate >= 30) score = Math.min(99, 85 + Math.round((savingsRate - 30) / 3));
+        else if (savingsRate >= 15) score = Math.round(75 + (savingsRate - 15));
+        else if (savingsRate >= 0) score = Math.round(55 + savingsRate);
+        else score = Math.max(10, Math.round(50 + savingsRate));
+      }
+
+      let grade = 'A+';
+      let gradeClass = 'health-grade-a';
+
+      if (score >= 85) {
+        grade = 'A+';
+        gradeClass = 'health-grade-a';
+      } else if (score >= 70) {
+        grade = 'B';
+        gradeClass = 'health-grade-b';
+      } else if (score >= 50) {
+        grade = 'C';
+        gradeClass = 'health-grade-c';
+      } else {
+        grade = 'D';
+        gradeClass = 'health-grade-d';
+      }
+
+      healthScoreEl.textContent = `${grade} (${score}/100)`;
+      healthBadgeWrap.className = `health-badge-wrap ${gradeClass}`;
+      healthBadgeWrap.title = `Student Financial GPA: Grade ${grade} (${score}/100) based on savings rate & safe-to-spend control.`;
+    }
   }
 
   // --- Category Spend Summary ---
@@ -1282,10 +1318,70 @@
     renderAll();
 
     if (goal.current >= goal.target) {
+      fireConfetti();
       showToast(`🎉 WOW! You achieved your goal "${goal.title}"! Congratulations!`);
     } else {
       showToast(`Deposited ${formatMoney(amount)} into ${goal.title}!`);
     }
+  }
+
+  // --- Confetti Particle Cannon for Savings Goals ---
+  function fireConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#38bdf8'];
+    const particles = [];
+    const count = 90;
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: canvas.width / 2,
+        y: canvas.height * 0.45,
+        w: Math.random() * 8 + 4,
+        h: Math.random() * 8 + 4,
+        vx: (Math.random() - 0.5) * 18,
+        vy: (Math.random() - 0.7) * 20,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rSpeed: (Math.random() - 0.5) * 12,
+        opacity: 1
+      });
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.45; // gravity
+        p.rotation += p.rSpeed;
+        p.opacity -= 0.014;
+
+        if (p.opacity > 0) {
+          alive = true;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        }
+      });
+
+      if (alive) {
+        requestAnimationFrame(update);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    update();
   }
 
   // --- CSV Export Feature ---
@@ -1473,6 +1569,45 @@
         [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop, receiptModalBackdrop].forEach(b => {
           if (b) b.classList.add('hide');
         });
+      }
+    });
+
+    // Reset All Data for New Semester
+    const resetBtn = document.getElementById('resetAllDataBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (confirm('⚠️ Start Fresh for New Semester?\n\nThis will clear all transactions, category budgets, and savings goals stored in your browser. (You can click "Demo Data" anytime to reload sample data).')) {
+          localStorage.removeItem('cf_transactions');
+          localStorage.removeItem('cf_budgets');
+          localStorage.removeItem('cf_goals');
+          state.transactions = [];
+          state.budgets = {};
+          state.goals = [];
+          renderAll();
+          showToast('All data reset! Clean slate for your new semester.', 'warn');
+        }
+      });
+    }
+
+    // Global Power-User Keyboard Shortcuts: N (New Tx), T (Theme), D (Demo)
+    window.addEventListener('keydown', (e) => {
+      const activeTag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+      // Don't trigger if any modal is currently visible
+      const isAnyModalOpen = [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop, receiptModalBackdrop].some(m => m && !m.classList.contains('hide'));
+
+      if ((e.key === 'n' || e.key === 'N') && !isAnyModalOpen) {
+        e.preventDefault();
+        openAddTransactionModal('expense');
+      } else if ((e.key === 't' || e.key === 'T') && !isAnyModalOpen) {
+        e.preventDefault();
+        const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        showToast(`Theme switched to ${nextTheme} mode!`);
+      } else if ((e.key === 'd' || e.key === 'D') && !isAnyModalOpen) {
+        e.preventDefault();
+        loadDemoData();
       }
     });
 
