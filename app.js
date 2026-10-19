@@ -41,14 +41,14 @@
 
   // --- Initial Default Data for Instant WOW Factor ---
   const DEFAULT_TRANSACTIONS = [
-    { id: 'tx_1', type: 'income', title: 'Monthly Allowance from Parents', amount: 650.00, category: 'Monthly Allowance', date: getFormattedCurrentDate(-18), tag: '#pocketmoney' },
-    { id: 'tx_2', type: 'income', title: 'Campus Library Assistant Shift', amount: 180.00, category: 'Part-time / Campus Job', date: getFormattedCurrentDate(-10), tag: '#campusjob' },
-    { id: 'tx_3', type: 'expense', title: 'Hostel Rent & Wi-Fi Share', amount: 280.00, category: 'Hostel & Rent', date: getFormattedCurrentDate(-17), tag: '#hostel' },
-    { id: 'tx_4', type: 'expense', title: 'Engineering Textbooks & Notebooks', amount: 55.00, category: 'Tuition & Books', date: getFormattedCurrentDate(-14), tag: '#books' },
-    { id: 'tx_5', type: 'expense', title: 'Campus Canteen Lunches & Coffee', amount: 74.50, category: 'Canteen & Food', date: getFormattedCurrentDate(-8), tag: '#canteen' },
-    { id: 'tx_6', type: 'expense', title: 'Domino’s Pizza Night with Roommates', amount: 16.50, category: 'Hangouts & Parties', date: getFormattedCurrentDate(-5), tag: '#split' },
-    { id: 'tx_7', type: 'expense', title: 'Spotify Student + Cloud Storage', amount: 7.99, category: 'Subscriptions & Tech', date: getFormattedCurrentDate(-4), tag: '#studentdiscount' },
-    { id: 'tx_8', type: 'expense', title: 'Monthly Metro Student Pass', amount: 35.00, category: 'Commute & Travel', date: getFormattedCurrentDate(-2), tag: '#commute' }
+    { id: 'tx_1', type: 'income', title: 'Monthly Allowance from Parents', amount: 650.00, category: 'Monthly Allowance', date: getFormattedCurrentDate(-18), tag: '#pocketmoney', paymentMode: 'Bank Transfer' },
+    { id: 'tx_2', type: 'income', title: 'Campus Library Assistant Shift', amount: 180.00, category: 'Part-time / Campus Job', date: getFormattedCurrentDate(-10), tag: '#campusjob', paymentMode: 'Direct Deposit' },
+    { id: 'tx_3', type: 'expense', title: 'Hostel Rent & Wi-Fi Share', amount: 280.00, category: 'Hostel & Rent', date: getFormattedCurrentDate(-17), tag: '#hostel', gstRate: 0, paymentMode: 'Net Banking' },
+    { id: 'tx_4', type: 'expense', title: 'Engineering Textbooks & Notebooks', amount: 55.00, category: 'Tuition & Books', date: getFormattedCurrentDate(-14), tag: '#books', gstRate: 12, paymentMode: 'UPI (GPay / PhonePe)' },
+    { id: 'tx_5', type: 'expense', title: 'Campus Canteen Lunches & Coffee', amount: 74.50, category: 'Canteen & Food', date: getFormattedCurrentDate(-8), tag: '#canteen', gstRate: 5, paymentMode: 'UPI (GPay / PhonePe)' },
+    { id: 'tx_6', type: 'expense', title: 'Domino’s Pizza Night with Roommates', amount: 16.50, category: 'Hangouts & Parties', date: getFormattedCurrentDate(-5), tag: '#split', gstRate: 5, paymentMode: 'UPI (GPay / PhonePe)' },
+    { id: 'tx_7', type: 'expense', title: 'Spotify Student + Cloud Storage', amount: 7.99, category: 'Subscriptions & Tech', date: getFormattedCurrentDate(-4), tag: '#studentdiscount', gstRate: 18, paymentMode: 'Debit Card' },
+    { id: 'tx_8', type: 'expense', title: 'Monthly Metro Student Pass', amount: 35.00, category: 'Commute & Travel', date: getFormattedCurrentDate(-2), tag: '#commute', gstRate: 5, paymentMode: 'Cash' }
   ];
 
   const DEFAULT_BUDGETS = {
@@ -737,6 +737,17 @@
               ${isIncome ? '+' : '-'}${formatMoney(tx.amount)}
             </span>
             <div class="tx-actions">
+              ${!isIncome ? `
+                <button class="btn-icon-subtle view-receipt-btn" data-id="${tx.id}" title="View GST Tax Invoice & Bill">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </button>
+              ` : ''}
               <button class="btn-icon-subtle edit-tx-btn" data-id="${tx.id}" title="Edit Transaction">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -757,6 +768,13 @@
     });
 
     // Attach row action listeners
+    document.querySelectorAll('.view-receipt-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        openReceiptModal(id);
+      });
+    });
+
     document.querySelectorAll('.del-tx-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -935,14 +953,21 @@
     state.modalType = type;
     txTypeInput.value = type;
 
+    const gstRow = document.getElementById('gstPaymentRow');
+    const receiptGroup = document.getElementById('receiptOptGroup');
+
     if (type === 'expense') {
       typeExpenseBtn.classList.add('active');
       typeIncomeBtn.classList.remove('active');
       populateCategoryOptions(EXPENSE_CATEGORIES);
+      if (gstRow) gstRow.classList.remove('hide');
+      if (receiptGroup) receiptGroup.classList.remove('hide');
     } else {
       typeIncomeBtn.classList.add('active');
       typeExpenseBtn.classList.remove('active');
       populateCategoryOptions(INCOME_CATEGORIES);
+      if (gstRow) gstRow.classList.add('hide');
+      if (receiptGroup) receiptGroup.classList.add('hide');
     }
   }
 
@@ -971,10 +996,20 @@
     const type = txTypeInput.value;
     const existingId = editTxId.value;
 
+    const gstRateSelect = document.getElementById('txGstRate');
+    const paymentModeSelect = document.getElementById('txPaymentMode');
+    const receiptCheck = document.getElementById('generateReceiptCheck');
+
+    const gstRate = type === 'expense' && gstRateSelect ? (parseFloat(gstRateSelect.value) || 0) : 0;
+    const paymentMode = type === 'expense' && paymentModeSelect ? paymentModeSelect.value : 'Direct Inflow';
+    const shouldGenerateReceipt = type === 'expense' && receiptCheck && receiptCheck.checked;
+
     if (!title || isNaN(amount) || amount <= 0 || !date) {
       showToast('Please fill out all required fields with valid values.', 'warn');
       return;
     }
+
+    let savedTxId = existingId;
 
     if (existingId) {
       // Edit
@@ -987,20 +1022,25 @@
           date,
           category,
           tag,
-          type
+          type,
+          gstRate,
+          paymentMode
         };
         showToast('Transaction updated successfully!');
       }
     } else {
       // Add
+      savedTxId = 'tx_' + Date.now();
       const newTx = {
-        id: 'tx_' + Date.now(),
+        id: savedTxId,
         type,
         title,
         amount,
         date,
         category,
-        tag
+        tag,
+        gstRate,
+        paymentMode
       };
       state.transactions.unshift(newTx);
       showToast(`${type === 'income' ? 'Income' : 'Expense'} recorded!`);
@@ -1009,6 +1049,90 @@
     saveTransactions();
     closeTxModal();
     renderAll();
+
+    // If receipt requested, open the GST bill immediately!
+    if (shouldGenerateReceipt && savedTxId) {
+      setTimeout(() => {
+        openReceiptModal(savedTxId);
+      }, 350);
+    }
+  }
+
+  // --- GST Bill & Tax Invoice Modal Logic ---
+  const receiptModalBackdrop = document.getElementById('receiptModalBackdrop');
+  const closeReceiptModalBtn = document.getElementById('closeReceiptModalBtn');
+  const closeReceiptBtn = document.getElementById('closeReceiptBtn');
+  const printReceiptBtn = document.getElementById('printReceiptBtn');
+
+  function openReceiptModal(id) {
+    const tx = state.transactions.find(t => t.id === id);
+    if (!tx || !receiptModalBackdrop) return;
+
+    const storeNames = {
+      'Canteen & Food': 'Campus Central Canteen & Cafeteria',
+      'Tuition & Books': 'University Book Depot & Stationery',
+      'Hostel & Rent': 'Campus Housing & PG Services',
+      'Commute & Travel': 'City Metro & Transit Services',
+      'Hangouts & Parties': 'Campus Hangout Cafe & Restaurant',
+      'Subscriptions & Tech': 'Campus Tech & Digital Services',
+      'Shopping & Self-care': 'Student Convenience Store',
+      'Health & Medical': 'Campus Health Center & Pharmacy',
+      'Other Expenses': 'Campus Merchant Services'
+    };
+
+    const amt = parseFloat(tx.amount) || 0;
+    const rate = tx.gstRate !== undefined ? tx.gstRate : 5;
+    const basePrice = rate > 0 ? (amt / (1 + rate / 100)) : amt;
+    const totalTax = amt - basePrice;
+    const halfTax = totalTax / 2;
+
+    const storeEl = document.getElementById('receiptStoreName');
+    const invEl = document.getElementById('receiptInvoiceNo');
+    const dateEl = document.getElementById('receiptDateTime');
+    const billedToEl = document.getElementById('receiptBilledTo');
+    const modeEl = document.getElementById('receiptPaymentMode');
+    const titleEl = document.getElementById('receiptItemTitle');
+    const catEl = document.getElementById('receiptItemCat');
+    const rateBadge = document.getElementById('receiptGstRateBadge');
+    const grossEl = document.getElementById('receiptGrossAmt');
+    const baseEl = document.getElementById('receiptBasePrice');
+    const cgstLabel = document.getElementById('cgstLabel');
+    const sgstLabel = document.getElementById('sgstLabel');
+    const cgstEl = document.getElementById('receiptCgst');
+    const sgstEl = document.getElementById('receiptSgst');
+    const totalTaxEl = document.getElementById('receiptTotalTax');
+    const grandTotalEl = document.getElementById('receiptGrandTotal');
+    const hashEl = document.getElementById('receiptVerifyHash');
+
+    if (storeEl) storeEl.textContent = storeNames[tx.category] || `${tx.category} Store`;
+    if (invEl) invEl.textContent = 'INV-2026-' + (tx.id.replace(/\D/g, '').slice(-4) || '1024');
+    if (dateEl) dateEl.textContent = (tx.date || getFormattedCurrentDate()) + ', ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (billedToEl) billedToEl.textContent = 'Student (Campus Account)';
+    if (modeEl) modeEl.textContent = tx.paymentMode || 'UPI (GPay / PhonePe)';
+    
+    if (titleEl) titleEl.textContent = tx.title;
+    if (catEl) catEl.textContent = tx.category;
+    if (rateBadge) rateBadge.textContent = `${rate}% GST`;
+    if (grossEl) grossEl.textContent = formatMoney(amt);
+
+    if (baseEl) baseEl.textContent = formatMoney(basePrice);
+    if (cgstLabel) cgstLabel.textContent = `Central GST (CGST ${(rate / 2)}%):`;
+    if (sgstLabel) sgstLabel.textContent = `State GST (SGST ${(rate / 2)}%):`;
+
+    if (cgstEl) cgstEl.textContent = formatMoney(halfTax);
+    if (sgstEl) sgstEl.textContent = formatMoney(halfTax);
+    if (totalTaxEl) totalTaxEl.textContent = formatMoney(totalTax);
+    if (grandTotalEl) grandTotalEl.textContent = formatMoney(amt);
+
+    if (hashEl) hashEl.textContent = 'VERIFY: CF-' + (tx.id.toUpperCase().slice(-8));
+
+    receiptModalBackdrop.classList.remove('hide');
+  }
+
+  function closeReceiptModal() {
+    if (receiptModalBackdrop) {
+      receiptModalBackdrop.classList.add('hide');
+    }
   }
 
   function deleteTransaction(id) {
@@ -1328,8 +1452,14 @@
     });
     recordMyShareBtn.addEventListener('click', recordMySplitShare);
 
+    // Receipt Modal Listeners
+    if (closeReceiptModalBtn) closeReceiptModalBtn.addEventListener('click', closeReceiptModal);
+    if (closeReceiptBtn) closeReceiptBtn.addEventListener('click', closeReceiptModal);
+    if (printReceiptBtn) printReceiptBtn.addEventListener('click', () => window.print());
+
     // Close modals on clicking backdrop
-    [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop].forEach(backdrop => {
+    [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop, receiptModalBackdrop].forEach(backdrop => {
+      if (!backdrop) return;
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
           backdrop.classList.add('hide');
@@ -1340,7 +1470,9 @@
     // Keyboard escape to close modals
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop].forEach(b => b.classList.add('hide'));
+        [txModalBackdrop, budgetModalBackdrop, goalModalBackdrop, depositModalBackdrop, receiptModalBackdrop].forEach(b => {
+          if (b) b.classList.add('hide');
+        });
       }
     });
 

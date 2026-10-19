@@ -469,6 +469,37 @@
           <input type="text" id="txTag" placeholder="e.g. #hostel #exam #hangout #split">
         </div>
 
+        <!-- GST & Payment Details for Expenses -->
+        <div class="form-row" id="gstPaymentRow">
+          <div class="form-group flex-1">
+            <label for="txGstRate">GST Rate</label>
+            <select id="txGstRate" class="styled-select w-full">
+              <option value="0">0% (Exempt / No GST)</option>
+              <option value="5" selected>5% (Canteen, Mess & Food)</option>
+              <option value="12">12% (Books, Stationery & Uniform)</option>
+              <option value="18">18% (Tech, Recharge & Subscriptions)</option>
+              <option value="28">28% (Luxury / Outings)</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="txPaymentMode">Payment Method</label>
+            <select id="txPaymentMode" class="styled-select w-full">
+              <option value="UPI (GPay / PhonePe)">📱 UPI (GPay / PhonePe)</option>
+              <option value="Cash">💵 Cash</option>
+              <option value="Debit Card">💳 Student Debit Card</option>
+              <option value="Net Banking">🏦 Net Banking</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="receiptOptGroup">
+          <label class="check-item">
+            <input type="checkbox" id="generateReceiptCheck" checked>
+            <span class="custom-check"></span>
+            <span class="check-text">Generate official GST Invoice & Bill upon payment</span>
+          </label>
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="cancelTxBtn">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveTxBtn">Save Transaction</button>
@@ -583,6 +614,124 @@
           <button type="submit" class="btn btn-primary" id="confirmDepositBtn">Add to Savings</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Digital GST Bill / Tax Invoice Modal -->
+  <div class="modal-backdrop hide" id="receiptModalBackdrop">
+    <div class="modal-card glass-panel receipt-modal-card" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="receiptModalTitle">Tax Invoice & Payment Bill 🧾</h3>
+        <button class="modal-close-btn" id="closeReceiptModalBtn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="receipt-paper" id="printableReceipt">
+        <!-- Receipt Header -->
+        <div class="receipt-header">
+          <div class="receipt-campus-badge">CAMPUSFUNDS OFFICIAL INVOICE</div>
+          <h2 class="receipt-store-title" id="receiptStoreName">Campus Canteen & Store</h2>
+          <p class="receipt-gstin" id="receiptGstin">GSTIN: 27AAACF1029K1Z4 • CIN: U74999MH2026PTC123</p>
+          <div class="receipt-divider"></div>
+        </div>
+
+        <!-- Receipt Meta Information Grid -->
+        <div class="receipt-meta-grid">
+          <div class="meta-col">
+            <span class="meta-label">Invoice No:</span>
+            <span class="meta-val" id="receiptInvoiceNo">CF-2026-0001</span>
+          </div>
+          <div class="meta-col text-right">
+            <span class="meta-label">Date & Time:</span>
+            <span class="meta-val" id="receiptDateTime">20 Oct 2026, 12:45 AM</span>
+          </div>
+          <div class="meta-col">
+            <span class="meta-label">Billed To:</span>
+            <span class="meta-val" id="receiptBilledTo">Campus Student (You)</span>
+          </div>
+          <div class="meta-col text-right">
+            <span class="meta-label">Payment Mode:</span>
+            <span class="meta-val" id="receiptPaymentMode">UPI (GPay / PhonePe)</span>
+          </div>
+        </div>
+
+        <div class="receipt-divider"></div>
+
+        <!-- Line Item Table -->
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th>Description / Category</th>
+              <th class="text-center">Rate (GST)</th>
+              <th class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="receipt-item-title" id="receiptItemTitle">Canteen Lunch & Coffee</div>
+                <div class="receipt-item-cat" id="receiptItemCat">🍔 Canteen & Food</div>
+              </td>
+              <td class="text-center" id="receiptGstRateBadge">5% GST</td>
+              <td class="text-right" id="receiptGrossAmt">$74.50</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="receipt-divider"></div>
+
+        <!-- GST & Total Computation Breakdown -->
+        <div class="receipt-breakdown-list">
+          <div class="breakdown-row">
+            <span>Taxable Subtotal (Base Price):</span>
+            <span id="receiptBasePrice">$70.95</span>
+          </div>
+          <div class="breakdown-row">
+            <span id="cgstLabel">Central GST (CGST 2.5%):</span>
+            <span id="receiptCgst">$1.77</span>
+          </div>
+          <div class="breakdown-row">
+            <span id="sgstLabel">State GST (SGST 2.5%):</span>
+            <span id="receiptSgst">$1.78</span>
+          </div>
+          <div class="breakdown-row breakdown-total-tax">
+            <span>Total Tax (GST):</span>
+            <span id="receiptTotalTax">$3.55</span>
+          </div>
+          <div class="receipt-divider double"></div>
+          <div class="breakdown-row grand-total-row">
+            <span>Grand Total Paid:</span>
+            <span id="receiptGrandTotal">$74.50</span>
+          </div>
+        </div>
+
+        <!-- Receipt Stamp & Verification Footer -->
+        <div class="receipt-footer">
+          <div class="receipt-stamp">
+            <div class="stamp-inner">
+              <span class="stamp-icon">✓</span>
+              <span>PAID & VERIFIED</span>
+            </div>
+          </div>
+          <div class="receipt-barcode-wrap">
+            <div class="receipt-barcode">||| | |||| || | ||||| ||| |||| | |||</div>
+            <span class="barcode-sub" id="receiptVerifyHash">VERIFY: CF-AUTH-OK</span>
+          </div>
+        </div>
+        <div class="receipt-thank-you">Thank you for tracking your student expenses!</div>
+      </div>
+
+      <!-- Receipt Modal Actions -->
+      <div class="modal-actions receipt-actions">
+        <button type="button" class="btn btn-secondary" id="closeReceiptBtn">Done</button>
+        <button type="button" class="btn btn-primary" id="printReceiptBtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Print / Download Bill
+        </button>
+      </div>
     </div>
   </div>
 
